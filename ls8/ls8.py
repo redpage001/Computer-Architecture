@@ -6,10 +6,10 @@ import sys
 from cpu import *
 
 print(sys.argv)
-if len(sys.argv) > 1:
+if len(sys.argv) == 2:
     filename = sys.argv[1]
 else:
-    print("Must provide command line argument")
+    print("usage: ls8.py filename")
     sys.exit()
 print("FILENAME:",filename)
     

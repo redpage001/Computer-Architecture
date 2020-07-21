@@ -6,6 +6,8 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
 
 class CPU:
     """Main CPU class."""
@@ -15,6 +17,14 @@ class CPU:
         self.pc = 0
         self.reg = [0] * 8
         self.ram = [0] * 256
+        self.sp = 7
+        self.branchtable = {}
+        self.branchtable[HLT] = self.handle_HLT
+        self.branchtable[LDI] = self.handle_LDI
+        self.branchtable[PRN] = self.handle_PRN
+        self.branchtable[MUL] = self.handle_MUL
+        self.branchtable[PUSH] = self.handle_PUSH
+        self.branchtable[POP] = self.handle_POP
 
     def ram_read(self, MAR):
         """Reads and returns value stored in address."""
@@ -47,13 +57,13 @@ class CPU:
 
         with open(sys.argv[1]) as f:
             for line in f:
-                str_line = line.split("#")[0].strip()
-                if str_line == '':
-                    continue
-                byte = int(str_line, 2)
-                self.ram[address] = byte
-                address += 1
-
+                try:
+                    str_line = line.split("#")[0].strip()
+                    byte = int(str_line, 2)
+                    self.ram[address] = byte
+                    address += 1
+                except:
+                    pass
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -67,6 +77,38 @@ class CPU:
         else:
             raise Exception("Unsupported ALU operation")
 
+    def handle_HLT(self):
+        sys.exit()
+    
+    def handle_LDI(self, operand_a, operand_b):
+        self.reg[operand_a] = operand_b
+        self.pc += 3
+
+    def handle_PRN(self, operand_a):
+        print(self.reg[operand_a])
+        self.pc += 2
+
+    def handle_MUL(self, operand_a, operand_b):
+        self.alu("MUL", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_PUSH(self, operand_a):
+        self.sp -= 1
+        value = self.reg[operand_a]
+        pointer = self.reg[self.sp]
+        print(f"PRINTING {value} to {self.ram[pointer]}")
+        self.ram[pointer] = value
+        self.pc += 2
+
+    def handle_POP(self, operand_a):
+        pointer = self.reg[self.sp]
+        value = self.ram[pointer]
+        print(f"POPPING {self.reg[pointer]}, INTO {self.reg[operand_a]}")
+        self.reg[operand_a] = value
+        print(f"NEW VALUE: {self.reg[operand_a]} AT: {operand_a}")
+        self.sp += 1
+        self.pc += 2
+    
     def trace(self):
         """
         Handy function to print out the CPU state. You might want to call this
@@ -98,19 +140,23 @@ class CPU:
 
             if IR == HLT:
                 print("HALTING")
-                running = False
+                self.branchtable[HLT]()
             elif IR == LDI:
                 print(f"LDA ADDRESS: {operand_a} VALUE: {operand_b}")
-                self.reg[operand_a] = operand_b
-                self.pc += 3
+                self.branchtable[LDI](operand_a, operand_b)
             elif IR == PRN:
                 print("PRINTING")
-                print(self.reg[operand_a])
-                self.pc += 2
+                self.branchtable[PRN](operand_a)
             elif IR == MUL:
                 print("MULTIPLYING")
-                self.alu("MUL", operand_a, operand_b)
-                self.pc += 3
+                self.branchtable[MUL](operand_a, operand_b)
+            elif IR == PUSH:
+                print("PUSHING")
+                self.branchtable[PUSH](operand_a)
+            elif IR == POP:
+                print("POPPING")
+                self.branchtable[POP](operand_a)
             else:
                 print(f"INVALID INSTRUCTION {IR}")
                 running = False
+
