@@ -93,20 +93,17 @@ class CPU:
         self.pc += 3
 
     def handle_PUSH(self, operand_a):
-        self.sp -= 1
-        value = self.reg[operand_a]
+        self.reg[self.sp] -= 1
         pointer = self.reg[self.sp]
-        print(f"PRINTING {value} to {self.ram[pointer]}")
+        value = self.reg[operand_a]
         self.ram[pointer] = value
         self.pc += 2
 
     def handle_POP(self, operand_a):
         pointer = self.reg[self.sp]
         value = self.ram[pointer]
-        print(f"POPPING {self.reg[pointer]}, INTO {self.reg[operand_a]}")
         self.reg[operand_a] = value
-        print(f"NEW VALUE: {self.reg[operand_a]} AT: {operand_a}")
-        self.sp += 1
+        self.reg[self.sp] += 1
         self.pc += 2
     
     def trace(self):
@@ -139,22 +136,22 @@ class CPU:
             operand_b = self.ram_read(self.pc + 2)
 
             if IR == HLT:
-                print("HALTING")
+                # print("HALTING")
                 self.branchtable[HLT]()
             elif IR == LDI:
-                print(f"LDA ADDRESS: {operand_a} VALUE: {operand_b}")
+                # print(f"LDA ADDRESS: {operand_a} VALUE: {operand_b}")
                 self.branchtable[LDI](operand_a, operand_b)
             elif IR == PRN:
-                print("PRINTING")
+                # print("PRINTING")
                 self.branchtable[PRN](operand_a)
             elif IR == MUL:
-                print("MULTIPLYING")
+                # print("MULTIPLYING")
                 self.branchtable[MUL](operand_a, operand_b)
             elif IR == PUSH:
-                print("PUSHING")
+                # print("PUSHING")
                 self.branchtable[PUSH](operand_a)
             elif IR == POP:
-                print("POPPING")
+                # print("POPPING")
                 self.branchtable[POP](operand_a)
             else:
                 print(f"INVALID INSTRUCTION {IR}")
