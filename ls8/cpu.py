@@ -13,6 +13,19 @@ PUSH = 0b01000101
 POP  = 0b01000110
 CALL = 0b01010000
 RET  = 0b00010001
+# SPRINT CHALLENGE
+CMP  = 0b10100111
+JMP  = 0b01010100
+JEQ  = 0b01010101
+JNE  = 0b01010110
+
+AND  = 0b10101000
+OR   = 0b10101010
+XOR  = 0b10101011
+NOT  = 0b01101001
+SHL  = 0b10101100
+SHR  = 0b10101101
+MOD  = 0b10100100
 
 class CPU:
     """Main CPU class."""
@@ -23,6 +36,7 @@ class CPU:
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.sp = 7
+        self.fl = [0] * 8
         self.branchtable = {}
         self.branchtable[HLT] = self.handle_HLT
         self.branchtable[LDI] = self.handle_LDI
@@ -35,6 +49,19 @@ class CPU:
         self.branchtable[POP] = self.handle_POP
         self.branchtable[CALL] = self.handle_CALL
         self.branchtable[RET] = self.handle_RET
+# SPRINT CHALLENGE        
+        self.branchtable[CMP] = self.handle_CMP
+        self.branchtable[JMP] = self.handle_JMP
+        self.branchtable[JEQ] = self.handle_JEQ
+        self.branchtable[JNE] = self.handle_JNE
+
+        self.branchtable[AND] = self.handle_AND
+        self.branchtable[OR] = self.handle_OR
+        self.branchtable[XOR] = self.handle_XOR
+        self.branchtable[NOT] = self.handle_NOT
+        self.branchtable[SHL] = self.handle_SHL
+        self.branchtable[SHR] = self.handle_SHR
+        self.branchtable[MOD] = self.handle_MOD
 
     def ram_read(self, MAR):
         """Reads and returns value stored in address."""
@@ -84,6 +111,37 @@ class CPU:
             self.reg[reg_a] -= self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl[7] = 1
+            else:
+                self.fl[7] = 0
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl[5] = 1
+            else:
+                self.fl[5] = 0
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.fl[6] = 1
+            else:
+                self.fl[6] = 0
+        elif op == "AND":
+            self.reg[reg_a] = self.reg[reg_a] & self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] = self.reg[reg_a] | self.reg[reg_b]
+        elif op == "XOR":
+            self.reg[reg_a] = self.reg[reg_a] ^ self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] = ~self.reg[reg_a]
+        elif op == "SHL":
+            self.reg[reg_a] = self.reg[reg_a] << self.reg[reg_b]
+        elif op == "SHR":
+            self.reg[reg_a] = self.reg[reg_a] >> self.reg[reg_b]
+        elif op == "MOD":
+            if self.reg[reg_b] == 0:
+                print("Cannot divide by 0")
+                sys.exit()
+            else:
+                self.reg[reg_a] = self.reg[reg_a] % self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -95,7 +153,7 @@ class CPU:
         self.pc += 3
 
     def handle_ST(self, operand_a, operand_b):
-        self.reg[operand_a] = operand_b
+        self.ram[self.reg[operand_a]] = self.reg[operand_b]
         self.pc += 3
 
     def handle_PRN(self, operand_a):
@@ -165,6 +223,64 @@ class CPU:
 
         self.pc = return_address
 
+    # SPRINT CHALLENGE    
+
+    def handle_CMP(self, operand_a, operand_b):
+        self.alu("CMP", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_JMP(self, operand_a):
+        try:
+            self.pc = self.reg[operand_a]
+        except:
+            print("STACK OVERFLOW")
+            sys.exit()
+
+    def handle_JEQ(self, operand_a):
+        if self.fl[7]:
+            print("JEQ-ING TO", self.reg[operand_a], "\n")
+            self.pc = self.reg[operand_a]
+        else:
+            print("JEQ NOTHING HAPPENED\n")
+            self.pc += 2
+
+    def handle_JNE(self, operand_a):
+        if not self.fl[7]:
+            print("JNE-ING TO", self.reg[operand_a], "\n")
+            self.pc = self.reg[operand_a]
+        else:
+            print("JNE NOTHING HAPPENED\n")
+            self.pc += 2
+
+
+    def handle_AND(self, operand_a, operand_b):
+        self.alu("AND", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_OR(self, operand_a, operand_b):
+        self.alu("OR", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_XOR(self, operand_a, operand_b):
+        self.alu("XOR", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_NOT(self, operand_a, operand_b):
+        self.alu("NOT", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_SHL(self, operand_a, operand_b):
+        self.alu("SHL", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_SHR(self, operand_a, operand_b):
+        self.alu("SHR", operand_a, operand_b)
+        self.pc += 3
+
+    def handle_MOD(self, operand_a, operand_b):
+        self.alu("MOD", operand_a, operand_b)
+        self.pc += 3
+
     def run(self):
         """Run the CPU."""
         running = True
@@ -175,35 +291,48 @@ class CPU:
             operand_b = self.ram_read(self.pc + 2)
 
             if IR == HLT:
-                # print("HALTING")
                 self.branchtable[HLT]()
             elif IR == LDI:
-                # print(f"LDA ADDRESS: {operand_a} VALUE: {operand_b}")
                 self.branchtable[LDI](operand_a, operand_b)
             elif IR == PRN:
-                # print("PRINTING")
                 self.branchtable[PRN](operand_a)
             elif IR == MUL:
-                # print("MULTIPLYING")
                 self.branchtable[MUL](operand_a, operand_b)
             elif IR == ADD:
-                # print("ADDING")
                 self.branchtable[ADD](operand_a, operand_b)
             elif IR == SUB:
-                # print("SUBTRACTING")
                 self.branchtable[SUB](operand_a, operand_b)
             elif IR == PUSH:
-                # print("PUSHING")
                 self.branchtable[PUSH](operand_a)
             elif IR == POP:
-                # print("POPPING")
                 self.branchtable[POP](operand_a)
             elif IR == CALL:
-                # print("CALLING")
                 self.branchtable[CALL](operand_a)
             elif IR == RET:
-                # print("RETURNING")
                 self.branchtable[RET]()
+# SPRINT CHALLENGE
+            elif IR == CMP:
+                self.branchtable[CMP](operand_a, operand_b)
+            elif IR == JMP:
+                self.branchtable[JMP](operand_a)
+            elif IR == JEQ:
+                self.branchtable[JEQ](operand_a)
+            elif IR == JNE:
+                self.branchtable[JNE](operand_a)
+            elif IR == AND:
+                self.branchtable[AND](operand_a, operand_b)
+            elif IR == OR:
+                self.branchtable[OR](operand_a, operand_b)
+            elif IR == XOR:
+                self.branchtable[XOR](operand_a, operand_b)
+            elif IR == NOT:
+                self.branchtable[NOT](operand_a, operand_b)
+            elif IR == SHL:
+                self.branchtable[SHL](operand_a, operand_b)
+            elif IR == SHR:
+                self.branchtable[SHR](operand_a, operand_b)
+            elif IR == MOD:
+                self.branchtable[MOD](operand_a, operand_b)
             else:
                 print(f"INVALID INSTRUCTION {IR}")
                 running = False
